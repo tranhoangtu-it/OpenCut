@@ -4,6 +4,10 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
+let success = true;
+if (waitlistRateLimit) {
+  ({ success } = await waitlistRateLimit.limit(identifier));
+}
 // Validate environment variables are present
 if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
   console.warn("Rate limiting disabled: Missing Redis configuration");
