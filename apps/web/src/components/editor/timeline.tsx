@@ -642,7 +642,9 @@ export function Timeline() {
       lastRulerSync.current = now;
       isUpdatingRef.current = true;
       tracksViewport.scrollLeft = rulerViewport.scrollLeft;
-      isUpdatingRef.current = false;
+      requestAnimationFrame(() => {
+        isUpdatingRef.current = false;
+      });
     });
     const handleTracksScroll = rafThrottle(() => {
       const now = Date.now();
