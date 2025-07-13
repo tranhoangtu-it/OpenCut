@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   productionBrowserSourceMaps: false, // Disable source maps in production to reduce bundle size
   output: "standalone",
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'framer-motion', 'recharts'],
+  },
   images: {
     remotePatterns: [
       {
@@ -73,6 +76,17 @@ const nextConfig: NextConfig = {
     
     return config;
   },
+  // Bundle analyzer
+  ...(process.env.ANALYZE === 'true' && {
+    webpack: (config) => {
+      config.plugins.push(
+        new (require('@next/bundle-analyzer'))({
+          enabled: true,
+        })
+      );
+      return config;
+    },
+  }),
 };
 
 export default nextConfig;

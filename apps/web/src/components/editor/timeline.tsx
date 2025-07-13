@@ -614,6 +614,27 @@ export function Timeline() {
 
     if (!rulerViewport || !tracksViewport) return;
 
+    // Throttled scroll handlers for better performance
+    const throttleScroll = (func: () => void, delay: number = 16) => {
+      let timeoutId: NodeJS.Timeout | null = null;
+      let lastExecTime = 0;
+      
+      return () => {
+        const currentTime = Date.now();
+        
+        if (currentTime - lastExecTime > delay) {
+          func();
+          lastExecTime = currentTime;
+        } else {
+          if (timeoutId) clearTimeout(timeoutId);
+          timeoutId = setTimeout(() => {
+            func();
+            lastExecTime = Date.now();
+          }, delay - (currentTime - lastExecTime));
+        }
+      };
+    };
+
     // Horizontal scroll synchronization between ruler and tracks
     const handleRulerScroll = rafThrottle(() => {
       const now = Date.now();
@@ -632,8 +653,8 @@ export function Timeline() {
       isUpdatingRef.current = false;
     });
 
-    rulerViewport.addEventListener("scroll", handleRulerScroll);
-    tracksViewport.addEventListener("scroll", handleTracksScroll);
+    rulerViewport.addEventListener("scroll", handleRulerScroll, { passive: true });
+    tracksViewport.addEventListener("scroll", handleTracksScroll, { passive: true });
 
     // Vertical scroll synchronization between track labels and tracks content
     if (trackLabelsViewport) {
@@ -656,8 +677,8 @@ export function Timeline() {
         isUpdatingRef.current = false;
       });
 
-      trackLabelsViewport.addEventListener("scroll", handleTrackLabelsScroll);
-      tracksViewport.addEventListener("scroll", handleTracksVerticalScroll);
+      trackLabelsViewport.addEventListener("scroll", handleTrackLabelsScroll, { passive: true });
+      tracksViewport.addEventListener("scroll", handleTracksVerticalScroll, { passive: true });
 
       return () => {
         // Cleanup event listeners

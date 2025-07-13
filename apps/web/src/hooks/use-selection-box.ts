@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 interface UseSelectionBoxProps {
   containerRef: React.RefObject<HTMLElement>;
@@ -15,6 +15,30 @@ interface SelectionBoxState {
   isActive: boolean;
 }
 
+// Throttle function for performance
+function throttle<T extends (...args: any[]) => any>(
+  func: T,
+  delay: number
+): T {
+  let timeoutId: NodeJS.Timeout | null = null;
+  let lastExecTime = 0;
+  
+  return ((...args: any[]) => {
+    const currentTime = Date.now();
+    
+    if (currentTime - lastExecTime > delay) {
+      func(...args);
+      lastExecTime = currentTime;
+    } else {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        func(...args);
+        lastExecTime = Date.now();
+      }, delay - (currentTime - lastExecTime));
+    }
+  }) as T;
+}
+
 export function useSelectionBox({
   containerRef,
   playheadRef,
@@ -25,6 +49,7 @@ export function useSelectionBox({
     null
   );
   const [justFinishedSelecting, setJustFinishedSelecting] = useState(false);
+  const elementsCache = useRef<Map<string, HTMLElement>>(new Map());
 
   // Mouse down handler to start selection
   const handleMouseDown = useCallback(
@@ -55,7 +80,7 @@ export function useSelectionBox({
     [isEnabled, playheadRef]
   );
 
-  // Function to select elements within the selection box
+  // Function to select elements within the selection box - optimized with caching
   const selectElementsInBox = useCallback(
     (startPos: { x: number; y: number }, endPos: { x: number; y: number }) => {
       if (!containerRef.current) return;
@@ -76,8 +101,20 @@ export function useSelectionBox({
         bottom: Math.max(startY, endY),
       };
 
-      // Find all timeline elements within the selection rectangle
-      const timelineElements = container.querySelectorAll(".timeline-element");
+      // Use cached elements or query them
+      let timelineElements: NodeListOf<Element>;
+      if (elementsCache.current.size === 0) {
+        timelineElements = container.querySelectorAll(".timeline-element");
+        // Cache elements for better performance
+        timelineElements.forEach((element) => {
+          const elementId = element.getAttribute("data-element-id");
+          if (elementId) {
+            elementsCache.current.set(elementId, element as HTMLElement);
+          }
+        });
+      } else {
+        timelineElements = container.querySelectorAll(".timeline-element");
+      }
 
       const selectedElements: { trackId: string; elementId: string }[] = [];
 
@@ -124,12 +161,15 @@ export function useSelectionBox({
       });
 
       // Always call the callback - with elements or empty array to clear selection
-      console.log(
-        JSON.stringify({ selectElementsInBox: selectedElements.length })
-      );
       onSelectionComplete(selectedElements);
     },
     [containerRef, onSelectionComplete]
+  );
+
+  // Throttled version of selectElementsInBox for better performance
+  const throttledSelectElements = useCallback(
+    throttle(selectElementsInBox, 16), // ~60fps
+    [selectElementsInBox]
   );
 
   // Effect to track selection box movement
@@ -153,7 +193,7 @@ export function useSelectionBox({
 
       // Real-time visual feedback: update selection as we drag
       if (newSelectionBox.isActive) {
-        selectElementsInBox(
+        throttledSelectElements(
           newSelectionBox.startPos,
           newSelectionBox.currentPos
         );
@@ -161,20 +201,17 @@ export function useSelectionBox({
     };
 
     const handleMouseUp = () => {
-      console.log(
-        JSON.stringify({ mouseUp: { wasActive: selectionBox?.isActive } })
-      );
-
       // If we had an active selection, mark that we just finished selecting
       if (selectionBox?.isActive) {
-        console.log(JSON.stringify({ settingJustFinishedSelecting: true }));
         setJustFinishedSelecting(true);
         // Clear the flag after a short delay to allow click events to check it
         setTimeout(() => {
-          console.log(JSON.stringify({ clearingJustFinishedSelecting: true }));
           setJustFinishedSelecting(false);
         }, 50);
       }
+
+      // Clear the elements cache when selection is done
+      elementsCache.current.clear();
 
       // Don't call selectElementsInBox again - real-time selection already handled it
       // Just clean up the selection box visual
@@ -188,7 +225,7 @@ export function useSelectionBox({
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [selectionBox, selectElementsInBox]);
+  }, [selectionBox, throttledSelectElements]);
 
   return {
     selectionBox,

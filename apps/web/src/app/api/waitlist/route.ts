@@ -3,6 +3,7 @@ import { db, eq } from "@opencut/db";
 import { waitlist } from "@opencut/db/schema";
 import { nanoid } from "nanoid";
 import { waitlistRateLimit } from "@/lib/rate-limit";
+import { invalidateWaitlistCountCache } from "@/lib/waitlist";
 import { z } from "zod";
 
 const waitlistSchema = z.object({
@@ -44,6 +45,9 @@ export async function POST(request: NextRequest) {
       id: nanoid(),
       email: email.toLowerCase(),
     });
+
+    // Invalidate cache to ensure fresh count
+    invalidateWaitlistCountCache();
 
     return NextResponse.json(
       { message: "Successfully joined waitlist!" },
