@@ -10,6 +10,11 @@ const waitlistSchema = z.object({
   email: z.string().email("Invalid email format").min(1, "Email is required"),
 });
 
+/**
+ * Handles waitlist signup requests by validating the email, enforcing rate limits, checking for duplicates, and adding new entries to the waitlist.
+ *
+ * Accepts a POST request with a JSON body containing an email address. Responds with appropriate HTTP status codes and messages for rate limiting, validation errors, duplicate emails, successful signups, and unexpected errors.
+ */
 export async function POST(request: NextRequest) {
   // Rate limit check
   const identifier = request.headers.get("x-forwarded-for") ?? "127.0.0.1";

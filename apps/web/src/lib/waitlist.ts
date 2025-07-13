@@ -3,7 +3,14 @@ import { waitlist } from "@opencut/db/schema";
 
 // Cache for waitlist count with 5 minute TTL
 let waitlistCountCache: { count: number; timestamp: number } | null = null;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+const CACHE_TTL = 5 * 60 * 1000; /**
+ * Retrieves the current count of entries in the waitlist, using a cached value if available and valid.
+ *
+ * If the cached count is older than 5 minutes, fetches the latest count from the database and updates the cache.
+ * In case of a database error, returns the cached count if available; otherwise, returns 0.
+ *
+ * @returns The number of entries in the waitlist.
+ */
 
 export async function getWaitlistCount() {
   try {
@@ -33,7 +40,11 @@ export async function getWaitlistCount() {
   }
 }
 
-// Function to invalidate cache (call this when someone joins waitlist)
+/**
+ * Clears the cached waitlist count, forcing the next retrieval to query the database.
+ *
+ * Call this function whenever the waitlist changes to ensure the count remains accurate.
+ */
 export function invalidateWaitlistCountCache() {
   waitlistCountCache = null;
 }
