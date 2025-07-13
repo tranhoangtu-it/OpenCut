@@ -2,6 +2,7 @@
   "name": "opencut",
   "packageManager": "bun@1.2.18",
   "devDependencies": {
+    "@next/bundle-analyzer": "^15.3.5",
     "turbo": "^2.5.4"
   },
   "workspaces": [

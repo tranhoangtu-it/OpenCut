@@ -38,6 +38,7 @@ interface MediaStore {
   loadProjectMedia: (projectId: string) => Promise<void>;
   clearProjectMedia: (projectId: string) => Promise<void>;
   clearAllMedia: () => void; // Clear local state only
+  cleanupObjectUrls: () => void; // New method to cleanup object URLs
 }
 
 // Helper function to determine file type
@@ -180,6 +181,7 @@ export const useMediaStore = create<MediaStore>((set, get) => ({
       set((state) => ({
         mediaItems: state.mediaItems.filter((media) => media.id !== newItem.id),
       }));
+      throw error; // Re-throw to let caller handle the error
     }
   },
 
@@ -188,9 +190,11 @@ export const useMediaStore = create<MediaStore>((set, get) => ({
     const item = state.mediaItems.find((media) => media.id === id);
 
     // Cleanup object URLs to prevent memory leaks
-    if (item && item.url) {
-      URL.revokeObjectURL(item.url);
-      if (item.thumbnailUrl) {
+    if (item) {
+      if (item.url && item.url.startsWith('blob:')) {
+        URL.revokeObjectURL(item.url);
+      }
+      if (item.thumbnailUrl && item.thumbnailUrl.startsWith('blob:')) {
         URL.revokeObjectURL(item.thumbnailUrl);
       }
     }
@@ -200,68 +204,78 @@ export const useMediaStore = create<MediaStore>((set, get) => ({
       mediaItems: state.mediaItems.filter((media) => media.id !== id),
     }));
 
-    // Remove from persistent storage
+    // Remove from persistent storage in background
     try {
       await storageService.deleteMediaItem(projectId, id);
     } catch (error) {
-      console.error("Failed to delete media item:", error);
+      console.error("Failed to remove media item from storage:", error);
+      // Don't re-add to local state as the user expects it to be removed
     }
   },
 
-  loadProjectMedia: async (projectId) => {
+  loadProjectMedia: async (projectId: string) => {
     set({ isLoading: true });
-
     try {
+      // Cleanup existing object URLs before loading new ones
+      get().cleanupObjectUrls();
+      
       const mediaItems = await storageService.loadAllMediaItems(projectId);
-      set({ mediaItems });
+      set({ mediaItems, isLoading: false });
     } catch (error) {
-      console.error("Failed to load media items:", error);
-    } finally {
-      set({ isLoading: false });
+      console.error("Failed to load project media:", error);
+      set({ mediaItems: [], isLoading: false });
     }
   },
 
-  clearProjectMedia: async (projectId) => {
+  clearProjectMedia: async (projectId: string) => {
     const state = get();
-
+    
     // Cleanup all object URLs
     state.mediaItems.forEach((item) => {
-      if (item.url) {
+      if (item.url && item.url.startsWith('blob:')) {
         URL.revokeObjectURL(item.url);
       }
-      if (item.thumbnailUrl) {
+      if (item.thumbnailUrl && item.thumbnailUrl.startsWith('blob:')) {
         URL.revokeObjectURL(item.thumbnailUrl);
       }
     });
 
-    // Clear local state
     set({ mediaItems: [] });
 
-    // Clear persistent storage
     try {
-      const mediaIds = state.mediaItems.map((item) => item.id);
-      await Promise.all(
-        mediaIds.map((id) => storageService.deleteMediaItem(projectId, id))
-      );
+      await storageService.deleteProjectMedia(projectId);
     } catch (error) {
-      console.error("Failed to clear media items from storage:", error);
+      console.error("Failed to clear project media from storage:", error);
     }
   },
 
   clearAllMedia: () => {
     const state = get();
-
+    
     // Cleanup all object URLs
     state.mediaItems.forEach((item) => {
-      if (item.url) {
+      if (item.url && item.url.startsWith('blob:')) {
         URL.revokeObjectURL(item.url);
       }
-      if (item.thumbnailUrl) {
+      if (item.thumbnailUrl && item.thumbnailUrl.startsWith('blob:')) {
         URL.revokeObjectURL(item.thumbnailUrl);
       }
     });
 
-    // Clear local state
     set({ mediaItems: [] });
+  },
+
+  cleanupObjectUrls: () => {
+    const state = get();
+    
+    // Cleanup all object URLs
+    state.mediaItems.forEach((item) => {
+      if (item.url && item.url.startsWith('blob:')) {
+        URL.revokeObjectURL(item.url);
+      }
+      if (item.thumbnailUrl && item.thumbnailUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(item.thumbnailUrl);
+      }
+    });
   },
 }));
