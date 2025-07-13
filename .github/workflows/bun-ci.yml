@@ -1,5 +1,8 @@
 name: Bun CI
 
+permissions:
+  contents: read
+
 concurrency:
   group: bun-ci-${{ github.ref }}
   cancel-in-progress: true
