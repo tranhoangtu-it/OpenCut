@@ -22,14 +22,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    optimizePackageImports: [
-      "lucide-react",
-      "react-icons",
-      "@radix-ui/react-icons",
-      "framer-motion",
-    ],
-  },
+  // Removed duplicate experimental block
   webpack: (config: any, { isServer }: { isServer: boolean }) => {
     if (!isServer) {
       // Optimize client-side bundles
