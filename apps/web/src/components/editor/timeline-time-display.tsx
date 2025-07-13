@@ -2,6 +2,11 @@
 
 import { usePlaybackStore } from "@/stores/playback-store";
 
+/**
+ * Displays the current playback time and total duration in seconds with one decimal precision.
+ *
+ * Shows the values in a monospace, centered format for use in timeline or media controls.
+ */
 export function TimelineTimeDisplay() {
   const { currentTime, duration } = usePlaybackStore();
 

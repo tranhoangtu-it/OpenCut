@@ -15,7 +15,15 @@ interface SelectionBoxState {
   isActive: boolean;
 }
 
-// Throttle function for performance
+/**
+ * Returns a throttled version of the given function that limits its execution to at most once per specified delay interval.
+ *
+ * The throttled function ensures that rapid, repeated calls are consolidated, improving performance for high-frequency events.
+ *
+ * @param func - The function to throttle
+ * @param delay - The minimum delay in milliseconds between function executions
+ * @returns The throttled function
+ */
 function throttle<T extends (...args: any[]) => any>(
   func: T,
   delay: number
@@ -39,6 +47,13 @@ function throttle<T extends (...args: any[]) => any>(
   }) as T;
 }
 
+/**
+ * React hook for managing a rectangular selection box within a container element, enabling click-and-drag selection of timeline elements.
+ *
+ * Provides state and handlers to initiate, update, and finalize a selection box, invoking a callback with the selected elements when selection completes. Optimized with throttling and element caching for efficient performance during rapid mouse events.
+ *
+ * @returns An object containing the current selection box state, a mouse down handler to start selection, a boolean indicating if selection is active, and a flag for recent selection completion.
+ */
 export function useSelectionBox({
   containerRef,
   playheadRef,

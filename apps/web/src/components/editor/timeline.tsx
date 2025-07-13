@@ -58,6 +58,13 @@ import {
   TIMELINE_CONSTANTS,
 } from "@/constants/timeline-constants";
 
+/**
+ * Renders the main multimedia timeline editor interface, allowing users to add, arrange, and edit video, audio, and text tracks and elements.
+ *
+ * The Timeline component supports drag-and-drop media addition, element manipulation (trimming, splitting, duplicating, deleting, moving), playback control, zooming, marquee selection, and synchronized scrolling between timeline sections. It provides a toolbar for common editing actions and keyboard shortcuts for efficient workflow.
+ *
+ * @returns The timeline editor React component.
+ */
 export function Timeline() {
   // Timeline shows all tracks (video, audio, effects) and their elements.
   // You can drag media here to add it to your project.

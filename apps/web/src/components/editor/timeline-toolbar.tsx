@@ -31,6 +31,11 @@ interface TimelineToolbarProps {
   showTestClipButton: boolean;
 }
 
+/**
+ * Renders a toolbar with controls for timeline playback and editing actions.
+ *
+ * Displays buttons for play/pause, splitting, duplicating, deleting, and separating audio from timeline elements, as well as an optional test clip button. Editing actions are disabled when no elements are selected.
+ */
 export function TimelineToolbar({
   onSplitSelected,
   onSplitAndKeepLeft,
