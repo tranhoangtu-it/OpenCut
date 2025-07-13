@@ -9,6 +9,13 @@ interface EditorProviderProps {
   children: React.ReactNode;
 }
 
+/**
+ * Provides initialization and loading state management for the editor application.
+ *
+ * Renders a loading screen while the editor is initializing or panels are not ready, and preloads FFmpeg resources for video processing. Once initialization is complete, renders the component's children.
+ *
+ * @param children - The content to render once the editor is ready
+ */
 export function EditorProvider({ children }: EditorProviderProps) {
   const { isInitializing, isPanelsReady, initializeApp } = useEditorStore();
 

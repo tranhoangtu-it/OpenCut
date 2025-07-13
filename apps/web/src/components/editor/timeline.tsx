@@ -59,6 +59,11 @@ import {
 } from "@/constants/timeline-constants";
 import { rafThrottle } from "@/lib/utils/performance";
 
+/**
+ * Renders the interactive timeline interface for editing media projects, including tracks, elements, and playback controls.
+ *
+ * The Timeline component displays all project tracks (video, audio, text) and their elements, supporting drag-and-drop media addition, element manipulation (trim, split, duplicate, delete, move), playback control, timeline zoom, and selection via marquee or click. It synchronizes scrolling between the timeline ruler, track labels, and track content, and provides keyboard shortcuts for common editing actions. The component also manages dynamic timeline width, playhead seeking, and error handling for media import and editing operations.
+ */
 export function Timeline() {
   // Timeline shows all tracks (video, audio, effects) and their elements.
   // You can drag media here to add it to your project.

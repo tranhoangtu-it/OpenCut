@@ -10,6 +10,15 @@ import { loadFFmpeg } from "./ffmpeg-loader";
 
 export interface ProcessedMediaItem extends Omit<MediaItem, "id"> {}
 
+/**
+ * Processes an array or list of media files (images, videos, or audio) and extracts metadata and thumbnails for each.
+ *
+ * For each file, determines its media type, extracts relevant metadata (such as duration, dimensions, and fps), and generates a thumbnail when applicable. Progress can be tracked via an optional callback.
+ *
+ * @param files - The media files to process
+ * @param onProgress - Optional callback invoked with the current progress percentage as files are processed
+ * @returns A promise resolving to an array of processed media items with extracted metadata and thumbnails
+ */
 export async function processMediaFiles(
   files: FileList | File[],
   onProgress?: (progress: number) => void
