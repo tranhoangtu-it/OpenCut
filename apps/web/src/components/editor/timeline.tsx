@@ -57,6 +57,7 @@ import {
   getTotalTracksHeight,
   TIMELINE_CONSTANTS,
 } from "@/constants/timeline-constants";
+import { rafThrottle } from "@/lib/utils/performance";
 
 export function Timeline() {
   // Timeline shows all tracks (video, audio, effects) and their elements.
@@ -614,29 +615,29 @@ export function Timeline() {
     if (!rulerViewport || !tracksViewport) return;
 
     // Horizontal scroll synchronization between ruler and tracks
-    const handleRulerScroll = () => {
+    const handleRulerScroll = rafThrottle(() => {
       const now = Date.now();
       if (isUpdatingRef.current || now - lastRulerSync.current < 16) return;
       lastRulerSync.current = now;
       isUpdatingRef.current = true;
       tracksViewport.scrollLeft = rulerViewport.scrollLeft;
       isUpdatingRef.current = false;
-    };
-    const handleTracksScroll = () => {
+    });
+    const handleTracksScroll = rafThrottle(() => {
       const now = Date.now();
       if (isUpdatingRef.current || now - lastTracksSync.current < 16) return;
       lastTracksSync.current = now;
       isUpdatingRef.current = true;
       rulerViewport.scrollLeft = tracksViewport.scrollLeft;
       isUpdatingRef.current = false;
-    };
+    });
 
     rulerViewport.addEventListener("scroll", handleRulerScroll);
     tracksViewport.addEventListener("scroll", handleTracksScroll);
 
     // Vertical scroll synchronization between track labels and tracks content
     if (trackLabelsViewport) {
-      const handleTrackLabelsScroll = () => {
+      const handleTrackLabelsScroll = rafThrottle(() => {
         const now = Date.now();
         if (isUpdatingRef.current || now - lastVerticalSync.current < 16)
           return;
@@ -644,8 +645,8 @@ export function Timeline() {
         isUpdatingRef.current = true;
         tracksViewport.scrollTop = trackLabelsViewport.scrollTop;
         isUpdatingRef.current = false;
-      };
-      const handleTracksVerticalScroll = () => {
+      });
+      const handleTracksVerticalScroll = rafThrottle(() => {
         const now = Date.now();
         if (isUpdatingRef.current || now - lastVerticalSync.current < 16)
           return;
@@ -653,30 +654,35 @@ export function Timeline() {
         isUpdatingRef.current = true;
         trackLabelsViewport.scrollTop = tracksViewport.scrollTop;
         isUpdatingRef.current = false;
-      };
+      });
 
       trackLabelsViewport.addEventListener("scroll", handleTrackLabelsScroll);
       tracksViewport.addEventListener("scroll", handleTracksVerticalScroll);
 
       return () => {
+        // Cleanup event listeners
         rulerViewport.removeEventListener("scroll", handleRulerScroll);
         tracksViewport.removeEventListener("scroll", handleTracksScroll);
-        trackLabelsViewport.removeEventListener(
-          "scroll",
-          handleTrackLabelsScroll
-        );
-        tracksViewport.removeEventListener(
-          "scroll",
-          handleTracksVerticalScroll
-        );
+
+        if (trackLabelsViewport) {
+          trackLabelsViewport.removeEventListener(
+            "scroll",
+            handleTrackLabelsScroll
+          );
+          tracksViewport.removeEventListener(
+            "scroll",
+            handleTracksVerticalScroll
+          );
+        }
       };
     }
 
     return () => {
+      // Cleanup event listeners
       rulerViewport.removeEventListener("scroll", handleRulerScroll);
       tracksViewport.removeEventListener("scroll", handleTracksScroll);
     };
-  }, []);
+  }, [isInTimeline]);
 
   return (
     <div

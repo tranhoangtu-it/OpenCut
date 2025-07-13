@@ -6,7 +6,7 @@ import {
   getImageDimensions,
   type MediaItem,
 } from "@/stores/media-store";
-import { generateThumbnail, getVideoInfo } from "./ffmpeg-utils";
+import { loadFFmpeg } from "./ffmpeg-loader";
 
 export interface ProcessedMediaItem extends Omit<MediaItem, "id"> {}
 
@@ -19,6 +19,9 @@ export async function processMediaFiles(
 
   const total = fileArray.length;
   let completed = 0;
+
+  // Lazy load FFmpeg only when needed
+  let ffmpegUtils: typeof import('./ffmpeg-utils') | null = null;
 
   for (const file of fileArray) {
     const fileType = getFileType(file);
@@ -43,15 +46,20 @@ export async function processMediaFiles(
         height = dimensions.height;
       } else if (fileType === "video") {
         try {
+          // Load FFmpeg utilities only when processing video
+          if (!ffmpegUtils) {
+            ffmpegUtils = await loadFFmpeg();
+          }
+          
           // Use FFmpeg for comprehensive video info extraction
-          const videoInfo = await getVideoInfo(file);
+          const videoInfo = await ffmpegUtils.getVideoInfo(file);
           duration = videoInfo.duration;
           width = videoInfo.width;
           height = videoInfo.height;
           fps = videoInfo.fps;
 
           // Generate thumbnail using FFmpeg
-          thumbnailUrl = await generateThumbnail(file, 1);
+          thumbnailUrl = await ffmpegUtils.generateThumbnail(file, 1);
         } catch (error) {
           console.warn(
             "FFmpeg processing failed, falling back to basic processing:",

@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     removeConsole: process.env.NODE_ENV === "production",
   },
   reactStrictMode: true,
-  productionBrowserSourceMaps: true,
+  productionBrowserSourceMaps: false, // Disable source maps in production to reduce bundle size
   output: "standalone",
   images: {
     remotePatterns: [
@@ -18,6 +18,60 @@ const nextConfig: NextConfig = {
         hostname: "images.unsplash.com",
       },
     ],
+  },
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "react-icons",
+      "@radix-ui/react-icons",
+      "framer-motion",
+    ],
+  },
+  webpack: (config: any, { isServer }: { isServer: boolean }) => {
+    if (!isServer) {
+      // Optimize client-side bundles
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          chunks: "all",
+          cacheGroups: {
+            default: false,
+            vendors: false,
+            // Split vendor code
+            vendor: {
+              name: "vendor",
+              chunks: "all",
+              test: /node_modules/,
+              priority: 20,
+            },
+            // Separate large libraries
+            ffmpeg: {
+              name: "ffmpeg",
+              test: /[\\/]node_modules[\\/]@ffmpeg[\\/]/,
+              chunks: "all",
+              priority: 30,
+            },
+            icons: {
+              name: "icons",
+              test: /[\\/]node_modules[\\/](lucide-react|react-icons)[\\/]/,
+              chunks: "all",
+              priority: 25,
+            },
+            // Common chunks
+            common: {
+              name: "common",
+              minChunks: 2,
+              chunks: "all",
+              priority: 10,
+              reuseExistingChunk: true,
+              enforce: true,
+            },
+          },
+        },
+      };
+    }
+    
+    return config;
   },
 };
 

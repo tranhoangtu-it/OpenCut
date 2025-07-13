@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { useEditorStore } from "@/stores/editor-store";
+import { preloadFFmpeg } from "@/lib/ffmpeg-loader";
 
 interface EditorProviderProps {
   children: React.ReactNode;
@@ -14,6 +15,11 @@ export function EditorProvider({ children }: EditorProviderProps) {
   useEffect(() => {
     initializeApp();
   }, [initializeApp]);
+
+  useEffect(() => {
+    // Preload FFmpeg after editor mounts to prepare for video processing
+    preloadFFmpeg();
+  }, []);
 
   // Show loading screen while initializing
   if (isInitializing || !isPanelsReady) {
