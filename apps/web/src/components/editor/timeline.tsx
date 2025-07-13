@@ -613,62 +613,77 @@ export function Timeline() {
 
     if (!rulerViewport || !tracksViewport) return;
 
-    // Horizontal scroll synchronization between ruler and tracks
-    const handleRulerScroll = () => {
-      const now = Date.now();
-      if (isUpdatingRef.current || now - lastRulerSync.current < 16) return;
-      lastRulerSync.current = now;
-      isUpdatingRef.current = true;
-      tracksViewport.scrollLeft = rulerViewport.scrollLeft;
-      isUpdatingRef.current = false;
-    };
-    const handleTracksScroll = () => {
-      const now = Date.now();
-      if (isUpdatingRef.current || now - lastTracksSync.current < 16) return;
-      lastTracksSync.current = now;
-      isUpdatingRef.current = true;
-      rulerViewport.scrollLeft = tracksViewport.scrollLeft;
-      isUpdatingRef.current = false;
+    // Throttled scroll handlers for better performance
+    const throttleScroll = (func: () => void, delay: number = 16) => {
+      let timeoutId: NodeJS.Timeout | null = null;
+      let lastExecTime = 0;
+      
+      return () => {
+        const currentTime = Date.now();
+        
+        if (currentTime - lastExecTime > delay) {
+          func();
+          lastExecTime = currentTime;
+        } else {
+          if (timeoutId) clearTimeout(timeoutId);
+          timeoutId = setTimeout(() => {
+            func();
+            lastExecTime = Date.now();
+          }, delay - (currentTime - lastExecTime));
+        }
+      };
     };
 
-    rulerViewport.addEventListener("scroll", handleRulerScroll);
-    tracksViewport.addEventListener("scroll", handleTracksScroll);
+    // Horizontal scroll synchronization between ruler and tracks
+    const handleRulerScroll = throttleScroll(() => {
+      if (isUpdatingRef.current) return;
+      isUpdatingRef.current = true;
+      tracksViewport.scrollLeft = rulerViewport.scrollLeft;
+      requestAnimationFrame(() => {
+        isUpdatingRef.current = false;
+      });
+    });
+
+    const handleTracksScroll = throttleScroll(() => {
+      if (isUpdatingRef.current) return;
+      isUpdatingRef.current = true;
+      rulerViewport.scrollLeft = tracksViewport.scrollLeft;
+      requestAnimationFrame(() => {
+        isUpdatingRef.current = false;
+      });
+    });
+
+    rulerViewport.addEventListener("scroll", handleRulerScroll, { passive: true });
+    tracksViewport.addEventListener("scroll", handleTracksScroll, { passive: true });
 
     // Vertical scroll synchronization between track labels and tracks content
     if (trackLabelsViewport) {
-      const handleTrackLabelsScroll = () => {
-        const now = Date.now();
-        if (isUpdatingRef.current || now - lastVerticalSync.current < 16)
-          return;
-        lastVerticalSync.current = now;
+      const handleTrackLabelsScroll = throttleScroll(() => {
+        if (isUpdatingRef.current) return;
         isUpdatingRef.current = true;
         tracksViewport.scrollTop = trackLabelsViewport.scrollTop;
-        isUpdatingRef.current = false;
-      };
-      const handleTracksVerticalScroll = () => {
-        const now = Date.now();
-        if (isUpdatingRef.current || now - lastVerticalSync.current < 16)
-          return;
-        lastVerticalSync.current = now;
+        requestAnimationFrame(() => {
+          isUpdatingRef.current = false;
+        });
+      });
+
+      const handleTracksVerticalScroll = throttleScroll(() => {
+        if (isUpdatingRef.current) return;
         isUpdatingRef.current = true;
         trackLabelsViewport.scrollTop = tracksViewport.scrollTop;
-        isUpdatingRef.current = false;
-      };
+        requestAnimationFrame(() => {
+          isUpdatingRef.current = false;
+        });
+      });
 
-      trackLabelsViewport.addEventListener("scroll", handleTrackLabelsScroll);
-      tracksViewport.addEventListener("scroll", handleTracksVerticalScroll);
+      trackLabelsViewport.addEventListener("scroll", handleTrackLabelsScroll, { passive: true });
+      tracksViewport.addEventListener("scroll", handleTracksVerticalScroll, { passive: true });
 
       return () => {
         rulerViewport.removeEventListener("scroll", handleRulerScroll);
         tracksViewport.removeEventListener("scroll", handleTracksScroll);
-        trackLabelsViewport.removeEventListener(
-          "scroll",
-          handleTrackLabelsScroll
-        );
-        tracksViewport.removeEventListener(
-          "scroll",
-          handleTracksVerticalScroll
-        );
+        trackLabelsViewport.removeEventListener("scroll", handleTrackLabelsScroll);
+        tracksViewport.removeEventListener("scroll", handleTracksVerticalScroll);
       };
     }
 
